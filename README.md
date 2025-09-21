@@ -7,9 +7,10 @@ We make the following assumptions when defining the data model and the API endpo
 - The description of the service is less than or around 1500 words. The choice of persistence layer depends on this assumption. Note, longer descriptions can still be stored as exceptions but if all services' descriptions are longer, we might need to consider other solutions such as blob storage.
 
 ## API Definition
-We define the following endpoints to serve our use case.
+We define the following endpoints to serve our use case:
 #### Fetch a particular service
 ```GET /api/v1/services/:id```
+
 Here, the `id` is the unique ID of the service. The response is a JSON object with the following schema:
 ```
 {
