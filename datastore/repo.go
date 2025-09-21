@@ -2,7 +2,10 @@ package datastore
 
 import (
 	"context"
+	"errors"
 	"fmt"
+
+	"github.com/jackc/pgx/v5"
 )
 
 type ServiceRepo interface {
@@ -24,6 +27,9 @@ func (r *PostgresServiceRepo) FindServiceById(ctx context.Context, id string) (S
 	var service Service
 	err := row.Scan(&service.Id, &service.Name, &service.Description, &service.Version)
 	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return Service{}, fmt.Errorf("service with id %s not found: %w", id, ResourceNotFoundError)
+		}
 		return Service{}, fmt.Errorf("failed to scan row while fetching service by id: %w", err)
 	}
 	return service, nil

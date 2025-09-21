@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"errors"
 	"fmt"
 	"log/slog"
 	"net/http"
@@ -29,7 +30,11 @@ func (h *ServiceHandler) GetServiceById(ctx *gin.Context) {
 
 	if err != nil {
 		slog.Error("failed to find service with id: %s: %w", err)
-		ctx.JSON(http.StatusNotFound, gin.H{"error": fmt.Sprintf("failed to find service with id: %s", serviceId)})
+		if errors.Is(err, datastore.ResourceNotFoundError) {
+			ctx.JSON(http.StatusNotFound, gin.H{"error": fmt.Sprintf("failed to find service with id: %s", serviceId)})
+			return
+		}
+		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "internal occur occurred. Please try again."})
 		return
 	}
 
@@ -46,7 +51,11 @@ func (h *ServiceHandler) Search(ctx *gin.Context) {
 	searchRequest.Keyword = strings.TrimSpace(ctx.Query("keyword"))
 
 	if err != nil {
-		ctx.JSON(http.StatusBadRequest, gin.H{"error": fmt.Sprintf("failed to parse sort parameter, check query again")})
+		if errors.Is(err, SearchIncorrectQuerySyntaxError) {
+			ctx.JSON(http.StatusBadRequest, gin.H{"error": fmt.Sprintf("failed to parse sort parameter, check query again.")})
+			return
+		}
+		ctx.JSON(http.StatusInternalServerError, gin.H{"error": fmt.Sprintf("internal error occurred. Please try again in some time.")})
 		return
 	}
 
@@ -78,12 +87,14 @@ func parseIntOrDefault(s string, def int) int {
 }
 
 func parseSortParameter(sortQuery string) ([]string, error) {
-	if sortQuery == "" {return []string{}, nil}
+	if sortQuery == "" {
+		return []string{}, nil
+	}
 	sortOptions := strings.Split(sortQuery, ",")
 	selectedSortOpts := []string{}
 	for _, opt := range sortOptions {
 		if _, ok := ValidSortOptions[opt]; !ok {
-			return selectedSortOpts, fmt.Errorf("invalid sort option in query: %v", opt)
+			return selectedSortOpts, fmt.Errorf("invalid sort option in query %v: %w", opt, SearchIncorrectQuerySyntaxError)
 		}
 		selectedSortOpts = append(selectedSortOpts, opt)
 	}
