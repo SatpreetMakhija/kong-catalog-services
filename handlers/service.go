@@ -43,6 +43,7 @@ func (h *ServiceHandler) Search(ctx *gin.Context) {
 	searchRequest.Version = strings.TrimSpace(ctx.Query("version"))
 	sortOrder, err := parseSortParameter(strings.TrimSpace(ctx.Query("sort")))
 	searchRequest.Sort = sortOrder
+	searchRequest.Keyword = strings.TrimSpace(ctx.Query("keyword"))
 
 	if err != nil {
 		ctx.JSON(http.StatusBadRequest, gin.H{"error": fmt.Sprintf("failed to parse sort parameter, check query again")})
@@ -77,6 +78,7 @@ func parseIntOrDefault(s string, def int) int {
 }
 
 func parseSortParameter(sortQuery string) ([]string, error) {
+	if sortQuery == "" {return []string{}, nil}
 	sortOptions := strings.Split(sortQuery, ",")
 	selectedSortOpts := []string{}
 	for _, opt := range sortOptions {

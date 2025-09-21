@@ -37,6 +37,7 @@ with base as (
 	where 
 	($1::text is null or name ilike $1)
 	and ($2::text is null or version = $2)
+	and ($5::text is null or search_doc @@ websearch_to_tsquery('english', $5))
 )
 	select id, name, description, version from base
 	`
@@ -72,6 +73,7 @@ with base as (
 
 	var versionParameter any
 	var nameParameter any
+	var keywordParameter any
 
 	if searchRequest.Version == "" {
 		versionParameter = nil
@@ -84,8 +86,13 @@ with base as (
 	} else {
 		nameParameter = "%" + searchRequest.Name + "%"
 	}
+	if searchRequest.Keyword == "" {
+		keywordParameter = nil
+	} else {
+		keywordParameter = searchRequest.Keyword
+	}
 
-	rows, err := r.ds.Client.Query(ctx, query, nameParameter, versionParameter, &searchRequest.PageSize, &offset)
+	rows, err := r.ds.Client.Query(ctx, query, nameParameter, versionParameter, &searchRequest.PageSize, &offset, keywordParameter)
 
 	if err != nil {
 		return ServiceSearchResponse{}, err

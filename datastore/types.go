@@ -13,9 +13,8 @@ type ServiceSearchRequest struct {
 	Sort    []string `json:"sort"`
 	// Name field is used to filter based on both exact term search as well as fuzzy search.
 	Name    string   `json:"name"`
-	// Query field represents natural language search. If Query field is non-empty,
-	// Name, Version fields are ignored.
-	Query    string `json:"query"`
+	// Keyword field is used to perform full text search. Example: "metadata service with notifications"
+	Keyword    string `json:"query"`
 	Page     int    `json:"page"`
 	PageSize int    `json:"page_size"`
 }
