@@ -34,6 +34,7 @@ func main() {
 
 	api := router.Group("/api/v1")
 	{
+		api.GET("services", serviceHandler.Search)
 		api.GET("services/:id", serviceHandler.GetServiceById)
 	}
 
