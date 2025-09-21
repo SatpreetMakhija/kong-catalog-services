@@ -15,6 +15,8 @@ import (
 var (
 	defaultPage     = 1
 	defaultPageSize = 10
+	// The char `-` before a value denotes sort in descending order else ascending order.
+	ValidSortOptions = map[string]bool{"name": true, "-name": true, "version": true, "-version": true}
 )
 
 type ServiceHandler struct {
@@ -39,6 +41,13 @@ func (h *ServiceHandler) Search(ctx *gin.Context) {
 
 	searchRequest.Name = strings.TrimSpace(ctx.Query("name"))
 	searchRequest.Version = strings.TrimSpace(ctx.Query("version"))
+	sortOrder, err := parseSortParameter(strings.TrimSpace(ctx.Query("sort")))
+	searchRequest.Sort = sortOrder
+
+	if err != nil {
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": fmt.Sprintf("failed to parse sort parameter, check query again")})
+		return
+	}
 
 	searchRequest.Page = parseIntOrDefault(strings.TrimSpace(ctx.Query("page")), defaultPage)
 	searchRequest.PageSize = parseIntOrDefault(strings.TrimSpace(ctx.Query("page_size")), defaultPageSize)
@@ -65,4 +74,17 @@ func parseIntOrDefault(s string, def int) int {
 		return def
 	}
 	return n
+}
+
+func parseSortParameter(sortQuery string) ([]string, error) {
+	sortOptions := strings.Split(sortQuery, ",")
+	selectedSortOpts := []string{}
+	for _, opt := range sortOptions {
+		if _, ok := ValidSortOptions[opt]; !ok {
+			return selectedSortOpts, fmt.Errorf("invalid sort option in query: %v", opt)
+		}
+		selectedSortOpts = append(selectedSortOpts, opt)
+	}
+
+	return selectedSortOpts, nil
 }

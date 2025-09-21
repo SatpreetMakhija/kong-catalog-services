@@ -3,7 +3,6 @@ package datastore
 import (
 	"context"
 	"fmt"
-
 )
 
 type ServiceRepo interface {
@@ -40,8 +39,35 @@ with base as (
 	and ($2::text is null or version = $2)
 )
 	select id, name, description, version from base
-	limit $3 offset $4
 	`
+	type sortKey struct{ col, dir string }
+	var order []sortKey
+	versionSortKey := "string_to_array(regexp_replace(version, '^v', ''), '.')::int[]"
+
+	for _, sortOpt := range searchRequest.Sort {
+		switch sortOpt {
+		case "name":
+			order = append(order, sortKey{col: "name", dir: "ASC"})
+		case "-name":
+			order = append(order, sortKey{col: "name", dir: "DESC"})
+		case "version":
+			order = append(order, sortKey{col: versionSortKey, dir: "ASC"})
+		case "-version":
+			order = append(order, sortKey{col: versionSortKey, dir: "DESC"})
+		}
+	}
+
+	if len(order) > 0 {
+		query += " order by "
+		for i, sortOpt := range order {
+			if i > 0 {
+				query += ", "
+			}
+			query += fmt.Sprintf("%s %s", sortOpt.col, sortOpt.dir)
+		}
+	}
+
+	query += " limit $3 offset $4"
 	offset := (searchRequest.Page - 1) * searchRequest.PageSize
 
 	var versionParameter any
@@ -54,7 +80,7 @@ with base as (
 	}
 
 	if searchRequest.Name == "" {
-		nameParameter = nil 
+		nameParameter = nil
 	} else {
 		nameParameter = "%" + searchRequest.Name + "%"
 	}
